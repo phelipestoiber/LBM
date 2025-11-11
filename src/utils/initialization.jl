@@ -123,3 +123,38 @@ function create_cylinder_mask!(
     
     return nothing # Function modifies in-place
 end
+
+"""
+    create_cavity_mask!(state::SimulationState)
+
+Creates a mask for the 3 stationary walls of a Lid-Driven Cavity.
+
+Modifies `state.mask` in-place, setting the left (i=1), 
+right (i=nx), and bottom (j=1) walls to `true` (solid).
+
+The top wall (j=ny) is intentionally left as `false` (fluid),
+as it will be handled by a separate velocity boundary condition
+kernel (`apply_lid_velocity!`).
+
+# Arguments
+- `state`: The `SimulationState` object to be modified.
+"""
+function create_cavity_mask!(state::SimulationState)
+    nx, ny = size(state.mask)
+    
+    @inbounds for j in 1:ny
+        # Parede Esquerda
+        state.mask[1, j] = true
+        # Parede Direita
+        state.mask[nx, j] = true
+    end
+    
+    @inbounds for i in 1:nx
+        # Parede de Baixo
+        state.mask[i, 1] = true
+    end
+    
+    # Nota: state.mask[:, ny] (a tampa) permanece 'false'.
+    
+    return nothing # Function modifies in-place
+end

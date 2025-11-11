@@ -1,149 +1,186 @@
-## 🌩️ O Fluxo de Trabalho Essencial
+## 🌩️ Guia de Comandos Git
+
+O Git é um sistema de controle de versão essencial para o desenvolvimento de software, permitindo rastrear alterações, colaborar com equipes e gerenciar o histórico do projeto.
+
+### 1\. Configuração Inicial e Remotos
+
+Antes de enviar ou baixar código, você precisa "iniciar" o Git e conectá-lo a um servidor (como o GitHub).
+
+#### `git init`
+
+**O que faz:** Inicia (cria) um novo repositório Git vazio no seu diretório atual. É o primeiro passo para começar a rastrear um projeto.
+
+```bash
+# Cria uma pasta .git oculta no seu diretório
+git init
+```
+
+#### `git remote add`
+
+**O que faz:** Conecta seu repositório local a um repositório remoto (na internet). Você dá um "apelido" (como `origin`) para uma URL.
+
+```bash
+# Sintaxe: git remote add [apelido] [url-do-repositorio]
+git remote add origin https://github.com/seu-usuario/seu-projeto.git
+```
+
+  * **`remote`**: Subcomando para gerenciar conexões remotas.
+  * **`add`**: Ação de adicionar uma nova conexão.
+  * **`origin`**: O apelido padrão e mais comum para seu repositório remoto principal.
+  * **`[url]`**: O link (HTTPS ou SSH) que você copia do GitHub.
+
+-----
+
+### 2\. O Fluxo de Trabalho Essencial
 
 Estes são os comandos para o ciclo diário de salvar e sincronizar seu trabalho.
 
-### 1\. `git add`
+#### `git add`
 
-**O que faz:** Prepara (ou "coloca na esteira") suas alterações para serem incluídas no próximo "pacote" (commit). Ele move as alterações do seu diretório de trabalho para a "Staging Area".
+**O que faz:** Prepara (ou "coloca na esteira") suas alterações para serem incluídas no próximo "pacote" (commit).
 
 ```bash
-# Adiciona um arquivo específico
-git add nome_do_arquivo.txt
-
-# Adiciona todos os arquivos modificados e novos no diretório atual
+# Adiciona todos os arquivos modificados e novos
 git add .
 ```
 
-#### Opções (Flags) Comuns:
+  * **`-p` (ou `--patch`):** Modo interativo. O Git mostra cada alteração e pergunta se você quer incluí-la (y/n). Ótimo para revisar seu código antes de commitar.
+  * **`-A` (ou `--all`):** Adiciona **todas** as alterações (novos, modificados e deletados).
 
-  * **`-p` (ou `--patch`):** Modo interativo. Em vez de adicionar o arquivo inteiro, o Git mostra cada "pedaço" (patch) de alteração e pergunta se você quer incluí-lo (y/n). Isso é excelente para revisar seu próprio código e fazer commits menores e mais limpos.
-  * **`-A` (ou `--all`):** Adiciona **todas** as alterações no repositório inteiro (não apenas no diretório atual). Isso inclui arquivos novos, modificados e **arquivos deletados**, o que `git add .` nem sempre faz dependendo da sua versão do Git.
-  * **`-u` (ou `--update`):** Adiciona apenas arquivos que já estão sendo rastreados pelo Git (modificados ou deletados). Ele **ignora** arquivos novos (untracked).
+#### `git commit`
 
------
-
-### 2\. `git commit`
-
-**O que faz:** Salva permanentemente as alterações que estão na "Staging Area" (as coisas que você usou `git add`) no seu histórico local. Cada commit é um "ponto de salvamento" (snapshot) do seu projeto.
+**O que faz:** Salva permanentemente as alterações que estão na "Staging Area" no seu histórico local.
 
 ```bash
-# Abre seu editor de texto padrão para escrever uma mensagem de commit
+# Abre seu editor de texto para escrever uma mensagem
 git commit
 ```
 
-#### Opções (Flags) Comuns:
-
-  * **`-m "Sua mensagem aqui"`:** (A flag mais usada). Permite que você escreva a mensagem do commit diretamente na linha de comando, sem abrir o editor de texto.
+  * **`-m "Sua mensagem aqui"`:** (A mais usada). Escreve a mensagem diretamente na linha de comando.
     ```bash
     git commit -m "Corrige bug na página de login"
     ```
-  * **`-a` (ou `--all`):** Um atalho. Ele automaticamente **adiciona (add)** todos os arquivos que já são rastreados (modificados ou deletados) e **faz o commit (commit)** deles em um só comando. *Nota: Ele não adiciona arquivos novos (untracked).*
+  * **`-a`:** (Atalho). Automaticamente "adiciona" (add) todos os arquivos já rastreados E faz o "commit". *Nota: Ele não adiciona arquivos novos.*
     ```bash
-    # Equivalente a 'git add -u' + 'git commit -m "..."'
     git commit -a -m "Atualiza links do rodapé"
     ```
-  * **`--amend`:** Modifica o **último** commit. Se você esqueceu de adicionar um arquivo ou digitou a mensagem errada, você pode usar `git add` no arquivo esquecido e depois rodar `git commit --amend`. Ele "emenda" suas novas alterações ao commit anterior.
+  * **`--amend`:** Modifica o **último** commit. Útil se você esqueceu de adicionar um arquivo ou errou a mensagem.
 
------
+#### `git push`
 
-### 3\. `git push`
-
-**O que faz:** Envia seus commits locais (que você salvou com `git commit`) para um repositório remoto (como o GitHub ou GitLab), permitindo que outros vejam seu trabalho.
+**O que faz:** Envia seus commits locais (que você salvou) para o repositório remoto (que você configurou com `git remote add`).
 
 ```bash
 # Envia a branch 'main' para o remoto 'origin'
 git push origin main
 ```
 
-#### Opções (Flags) Comuns:
+  * **`-u` (ou `--set-upstream`):** Usado na primeira vez que você envia uma nova branch. Ele "linka" sua branch local à remota. Depois de usar `git push -u origin main` uma vez, você pode simplesmente digitar `git push` nas próximas vezes.
 
-  * **`-u` (ou `--set-upstream`):** Usado na primeira vez que você envia uma nova branch. Ele "linka" sua branch local à branch remota. Depois de usar isso uma vez, você pode simplesmente digitar `git push` (sem `origin main`) nas próximas vezes.
-    ```bash
-    git push -u origin minha-nova-feature
-    ```
-  * **`-f` (ou `--force`):** **(CUIDADO)** Força o envio. Ele sobrescreve a branch remota com a sua versão local. Isso é destrutivo e pode apagar o histórico de outras pessoas. Geralmente é usado (com cautela) se você usou `git rebase` ou `--amend` em commits que já estavam no remoto.
-  * **`--tags`:** Envia todas as suas tags (marcadores de versão, ex: `v1.0`) locais para o remoto, já que o `git push` normal não faz isso.
+#### `git pull`
 
------
-
-### 4\. `git pull`
-
-**O que faz:** Atualiza sua branch local com as alterações de um repositório remoto. É, na verdade, uma combinação de dois outros comandos: `git fetch` (que baixa as alterações) e `git merge` (que mescla essas alterações na sua branch atual).
+**O que faz:** Atualiza sua branch local com as alterações de um repositório remoto. É uma combinação de `git fetch` (buscar) e `git merge` (mesclar).
 
 ```bash
 # Puxa as alterações da branch 'main' do remoto 'origin'
 git pull origin main
 ```
 
-#### Opções (Flags) Comuns:
-
-  * **`--rebase`:** Esta é uma alternativa muito popular ao merge. Em vez de criar um "merge commit" (um commit de "junção"), ele pega os seus commits locais que ainda não estão no remoto, **coloca-os de lado**, puxa as alterações do remoto e, em seguida, **re-aplica** os seus commits um por um "em cima" das alterações baixadas. Isso mantém o histórico linear e mais limpo.
-  * **`--ff-only` (Fast-Forward Only):** Só permite o pull se ele puder ser feito com um "fast-forward" (ou seja, se você não tiver nenhum commit local que o remoto não tenha). Se houver divergência, o pull falhará, forçando você a decidir se quer fazer um merge ou rebase.
-  * **`--prune`:** "Limpa" referências a branches remotas que já foram deletadas no servidor, mas que seu Git local ainda acha que existem.
+  * **`--rebase`:** Em vez de criar um "commit de merge", ele puxa as alterações remotas e "reaplica" seus commits locais por cima delas. Mantém um histórico mais limpo e linear.
 
 -----
 
-## 🌳 Gerenciamento de Branchs (Ramos)
+### 3\. Gerenciamento de Branchs (Ramos)
 
-Branches são essenciais para trabalhar em diferentes funcionalidades ou correções de bugs sem afetar a linha principal de desenvolvimento (`main`).
+Branches são essenciais para trabalhar em diferentes funcionalidades sem afetar a linha principal (`main`).
 
-### 1\. `git branch`
+#### `git branch`
 
 **O que faz:** Lista, cria ou deleta branches.
 
 ```bash
 # Lista todas as branches locais (a ativa é marcada com *)
 git branch
-
-# Cria uma nova branch
-git branch nome-da-nova-branch
 ```
 
-#### Opções (Flags) Comuns:
-
+  * **`git branch nome-da-nova-branch`**: Cria uma nova branch.
   * **`-a` (ou `--all`):** Lista **todas** as branches (locais e remotas).
-  * **`-d "nome-da-branch"` (ou `--delete`):** Deleta uma branch local. O Git **não** deixará você fazer isso se a branch tiver trabalho que ainda não foi mesclado (merge) em outra branch.
-  * **`-D "nome-da-branch"`:** (Delete forçado). Deleta a branch local **mesmo que** ela tenha trabalho não mesclado.
-  * **`-m "novo-nome"` (ou `--move`):** Renomeia a branch atual.
+  * **`-d "nome-da-branch"`:** Deleta uma branch local (com segurança, impede se tiver trabalho não mesclado).
+  * **`-D "nome-da-branch"`:** Força a deleção da branch local.
 
------
+#### `git checkout`
 
-### 2\. `git checkout`
-
-**O que faz:** Muda seu "foco" (HEAD) para outra branch ou commit.
+**O que faz:** Muda seu "foco" (HEAD) para outra branch.
 
 ```bash
 # Muda para uma branch que já existe
 git checkout nome-da-branch
-
-# Descarta alterações em um arquivo, voltando ao estado do último commit
-git checkout -- nome_do_arquivo.txt
 ```
 
-#### Opções (Flags) Comuns:
-
-  * **`-b "nome-da-nova-branch"`:** Um atalho fundamental. Ele **cria** uma nova branch (como `git branch nome-da-nova-branch`) e imediatamente **muda** para ela (como `git checkout nome-da-nova-branch`) em um só passo.
+  * **`-b "nome-da-nova-branch"`:** (O mais usado). **Cria** uma nova branch e imediatamente **muda** para ela.
     ```bash
     git checkout -b minha-nova-feature
     ```
-  * **`-` (hífen):** Um atalho útil que muda você de volta para a **última branch** em que você estava (similar ao comando `cd -` no terminal).
+  * **`-` (hífen):** Um atalho que muda você de volta para a **última branch** em que você estava.
 
------
-
-### 3\. `git merge`
+#### `git merge`
 
 **O que faz:** Pega as alterações de uma branch e as aplica (mescla) na sua branch atual.
 
 ```bash
-# 1. Primeiro, vá para a branch que vai RECEBER as alterações
+# 1. Vá para a branch que vai RECEBER as alterações
 git checkout main
 
 # 2. Execute o merge para trazer as alterações da outra branch
 git merge minha-nova-feature
 ```
 
-#### Opções (Flags) Comuns:
+  * **`--no-ff` (No Fast-Forward):** Força o Git a criar um "merge commit" (um commit de junção), mesmo se um "fast-forward" for possível. Isso mantém um registro claro de quando a feature foi integrada.
+  * **`--abort`:** Se você tiver conflitos de merge, pode usar isso para cancelar tudo e voltar ao estado anterior.
 
-  * **`--no-ff` (No Fast-Forward):** Por padrão, se a branch `main` não tiver nenhuma alteração nova desde que você criou a `minha-nova-feature`, o Git fará um "fast-forward", simplesmente movendo o ponteiro da `main` para frente. Usar `--no-ff` **força** o Git a criar um "merge commit" (um commit de junção). Isso é útil para manter um registro claro de quando uma feature foi integrada, preservando a topologia da branch.
-  * **`--ff-only` (Fast-Forward Only):** O oposto. Só permite o merge se ele puder ser feito com *fast-forward*. Se não for possível (ou seja, se a `main` tiver novos commits), o merge falhará.
-  * **`--abort`:** Se você estiver no meio de um merge e encontrar **conflitos** que não sabe resolver, você pode usar `git merge --abort` para cancelar tudo e voltar ao estado de antes do merge.
+-----
+
+### ❗ Extra: Solução de Problemas de Sincronização
+
+#### O Problema: "Meu `git push` foi rejeitado\!"
+
+Você tenta dar `git push` e recebe este erro:
+
+```bash
+To https://github.com/phelipestoiber/LBM.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to '...'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally.
+```
+
+**O que significa:** O repositório remoto (GitHub) tem commits/alterações que você ainda não baixou para o seu PC. O Git não deixa você dar `push` porque isso sobrescreveria o histórico e apagaria o trabalho que está lá.
+
+**A Solução (O Fluxo Correto):**
+
+Você deve **sempre** puxar (pull) as alterações remotas antes de enviar (push) as suas.
+
+1.  **Puxe (Pull) para mesclar as alterações:**
+
+    ```bash
+    git pull origin main
+    ```
+
+    O Git vai baixar os commits remotos e mesclá-los com os seus.
+
+2.  **(Caso Especial) Se as histórias forem não-relacionadas:**
+    Se você (como no nosso exemplo) começou um projeto local e tentou conectá-lo a um projeto remoto que *já tinha arquivos* (como um README), seus históricos são "não-relacionados". Nesse caso, você precisa usar uma flag especial na primeira vez:
+
+    ```bash
+    git pull origin main --allow-unrelated-histories
+    ```
+
+3.  **Resolva Conflitos (Se houver):**
+    Se você e o servidor alteraram a *mesma linha* no *mesmo arquivo*, o Git vai pausar e pedir para você resolver o "conflito". Você deve abrir o arquivo, editar manualmente para deixar a versão correta, e então usar `git add` e `git commit` para finalizar o merge.
+
+4.  **Faça o Push (Agora vai funcionar):**
+    Depois que o `pull` (e a resolução de conflitos, se necessária) for concluído, seu repositório local estará sincronizado e à frente do remoto. Agora o push será aceito:
+
+    ```bash
+    git push origin main
+    ```
