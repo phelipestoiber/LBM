@@ -1,2 +1,6 @@
-# Ignorar arquivos de imagem grandes
+# Ignorar todos os arquivos .svg
 *.svg
+
+# Ignorar arquivos específicos
+ROADMAP.md
+git-commands.md

@@ -116,3 +116,14 @@ struct SimulationState{
     # Inner constructor for validation (opcional, mas boa prática)
     # Por enquanto, deixaremos o construtor padrão.
 end
+
+"""
+    VorticitySnapshot
+
+    
+"""
+# Struct para armazenar dados leves para o GIF
+struct VorticitySnapshot
+    t::Int
+    data::Matrix{Float32} # Usamos Float32 para economizar 50% de RAM
+end
