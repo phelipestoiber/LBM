@@ -137,3 +137,107 @@ function apply_lid_velocity!(
     
     return nothing # Function modifies in-place
 end
+
+"""
+    apply_zou_he_inlet!(
+        state::SimulationState{T}, 
+        u_in::T
+    ) where {T<:AbstractFloat}
+
+Applies the Zou-He velocity boundary condition at the inlet (left wall, i=1).
+
+Assumes a prescribed velocity (u_in, 0) and an unknown density, which is
+calculated from the known populations.
+
+This function modifies `state.rho`, `state.u`, `state.v`, and `state.f_in`
+at the boundary `i=1`.
+It must be called *after* streaming and *before* collision.
+
+# Source
+- Zou, Q., & He, X. (1997). "On pressure and velocity boundary conditions
+  for the lattice Boltzmann BGK model." Physics of Fluids.
+"""
+function apply_zou_he_inlet!(
+    state::SimulationState{T}, 
+    u_in::T
+) where {T<:AbstractFloat}
+    
+    _, ny = size(state.rho)
+    feq_local = MVector{9, T}(undef)
+
+    @inbounds for j in 2:ny-1 # Iterate inlet nodes (skip corners)
+        # 1. Prescribe velocity, v=0
+        state.u[1, j] = u_in
+        state.v[1, j] = 0.0
+
+        # 2. Calculate rho from known (streamed) populations
+        # f[1,3,5] (parallel) and f[4,7,8] (from fluid) are known
+        f = @view state.f_in[1, j, :] # Get view of f_in at this node
+        
+        rho_local = (f[1] + f[3] + f[5] + 2 * (f[4] + f[7] + f[8])) / (1.0 - u_in)
+        
+        if rho_local <= 0.0 # Safety check
+             rho_local = 1.0
+        end
+        state.rho[1, j] = rho_local
+
+        # 3. Calculate feq with known u,v,rho
+        calculate_feq!(feq_local, rho_local, u_in, 0.0, state.params)
+        
+        # 4. Reconstruct unknown populations (k=2, 6, 9)
+        f[2] = feq_local[2] + feq_local[4] - f[4]
+        f[6] = feq_local[6] + feq_local[8] - f[8]
+        f[9] = feq_local[9] + feq_local[7] - f[7]
+    end
+    return nothing
+end
+
+"""
+    apply_zou_he_outlet!(
+        state::SimulationState{T}, 
+        rho_out::T
+    ) where {T<:AbstractFloat}
+
+Applies the Zou-He pressure/density boundary condition at the outlet (right wall, i=nx).
+
+Assumes a prescribed density `rho_out` (e.g., 1.0) and extrapolates
+velocity (u, v) from the adjacent fluid node (zero-gradient).
+
+This function modifies `state.rho`, `state.u`, `state.v`, and `state.f_in`
+at the boundary `i=nx`.
+It must be called *after* streaming and *before* collision.
+
+# Source
+- Zou, Q., & He, X. (1997). "On pressure and velocity boundary conditions
+  for the lattice Boltzmann BGK model." Physics of Fluids.
+"""
+function apply_zou_he_outlet!(
+    state::SimulationState{T}, 
+    rho_out::T
+) where {T<:AbstractFloat}
+    
+    nx, ny = size(state.rho)
+    feq_local = MVector{9, T}(undef)
+
+    @inbounds for j in 2:ny-1 # Iterate outlet nodes (skip corners)
+        # 1. Prescribe density
+        state.rho[nx, j] = rho_out
+        
+        # 2. Extrapolate velocity (zero-gradient)
+        u_local = state.u[nx-1, j]
+        v_local = state.v[nx-1, j]
+        state.u[nx, j] = u_local
+        state.v[nx, j] = v_local
+        
+        f = @view state.f_in[nx, j, :] # Get view of f_in at this node
+        
+        # 3. Calculate feq with prescribed rho and extrapolated u,v
+        calculate_feq!(feq_local, rho_out, u_local, v_local, state.params)
+        
+        # 4. Reconstruct unknown populations (k=4, 7, 8)
+        f[4] = feq_local[4] + feq_local[2] - f[2]
+        f[7] = feq_local[7] + feq_local[9] - f[9]
+        f[8] = feq_local[8] + feq_local[6] - f[6]
+    end
+    return nothing
+end
