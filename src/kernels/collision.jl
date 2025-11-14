@@ -1,29 +1,23 @@
 # src/NavalLBM/kernels/collision.jl
 
 """
-    calculate_feq!(
-        feq_local::AbstractVector{T}, 
-        rho::T, 
-        u::T, 
-        v::T,
-        params::D2Q9Params
-    ) where {T<:AbstractFloat}
+    calculate_feq!(feq_local, rho, u, v, params)
 
-Calculates the D2Q9 equilibrium distribution function (feq) in-place.
+Calculates the **D2Q9 Equilibrium Distribution Function** (f^{eq}) in-place.
 
-This function is marked `@inline` to suggest the compiler to "paste"
-this code directly into the calling function (e.g., `collision_bgk!`),
-avoiding the overhead of a function call inside the hot loop.
-
-It operates on a pre-allocated buffer `feq_local` (Vector of 9 elements)
-for a single lattice node.
+# Performance Note
+This function is marked `@inline`. This instructs the compiler to insert the code 
+body directly into the calling function (`collision_bgk!`), eliminating function 
+call overhead within the innermost hot loop.
 
 # Arguments
-- `feq_local`: A pre-allocated buffer (Vector or SVector) to store the result.
-- `rho`: Macroscopic density at the node.
-- `u`: Macroscopic velocity (x-component) at the node.
-- `v`: Macroscopic velocity (y-component) at the node.
-- `params`: The D2Q9Params struct containing weights `w` and velocities `c`.
+- `feq_local`: Pre-allocated buffer (Vector/SVector) to store the 9 results.
+- `rho`, `u`, `v`: Macroscopic density and velocity components.
+- `params`: D2Q9 parameters struct.
+
+# Physics
+Implements the 2nd-order expansion of the Maxwell-Boltzmann distribution 
+for low Mach number flows.
 
 # Source
 - Formula: D2Q9 BGK equilibrium distribution function (low Mach number).
@@ -50,10 +44,10 @@ for a single lattice node.
         c_k_x = params.c[k, 1]
         c_k_y = params.c[k, 2]
         
-        # Calculate (c_k ⋅ u)
+        # Projection of velocity onto lattice direction
         cu = c_k_x * u + c_k_y * v
         
-        # Equilibrium distribution formula
+        # Equilibrium expansion
         feq_local[k] = w_k * rho * (1.0 + 3.0*cu + 4.5*(cu*cu) - 1.5*uu)
     end
     
@@ -61,22 +55,23 @@ for a single lattice node.
 end
 
 """
-    collision_bgk!(state::SimulationState{T}) where {T}
+    collision_bgk!(state)
 
-Performs the LBM BGK (Bhatnagar-Gross-Krook) collision step.
+Executes the **BGK (Bhatnagar-Gross-Krook)** Collision Step.
 
-This is the main computational kernel of the simulation. It iterates
-over the entire domain, calculates the equilibrium distribution `feq`
-for each node (using the pre-computed `rho`, `u`, `v`), and applies the
-BGK collision rule to relax the input populations `f_in` towards `feq`.
+This is the primary computational kernel of the LBM. It relaxes the populations
+towards thermodynamic equilibrium.
 
-The result is written *in-place* to `state.f_out`.
+# Algorithm
+1. Iterate over every fluid node `(i, j)`.
+2. Compute the local equilibrium distribution f^{eq} based on macroscopic `rho`, `u`, `v`.
+3. Update populations: f_{out} = f_{in} - frac{1}{tau} (f_{in} - f^{eq}).
 
-# Arguments
-- `state`: The `SimulationState` object.
-           - Reads from: `state.f_in`, `state.rho`, `state.u`, `state.v`,
-                         `state.tau`, `state.params`.
-           - Writes to: `state.f_out`.
+# Performance Optimizations
+- **Zero Allocation:** A temporary buffer `feq_local` is allocated on the stack once.
+- **SIMD:** The inner loop over directions `k` is annotated with `@simd` to enable 
+  vectorized CPU instructions (AVX/AVX2).
+- **In-Place:** Directly modifies `state.f_out`.
 
 # Source
 - Formula: BGK Collision Operator
@@ -89,16 +84,16 @@ function collision_bgk!(state::SimulationState{T}) where {T<:AbstractFloat}
     nx, ny = size(state.rho)
     omega = 1.0 / state.tau
 
-    # -----------------------------------------------------------------
-    # CRITICAL PERFORMANCE: Pre-allocate feq buffer ONCE
-    # -----------------------------------------------------------------
-    # We allocate this temporary buffer *outside* the hot loops (i, j)
-    # to avoid allocating memory millions of times per step.
-    feq_local = MVector{9, T}(undef)
+    Threads.@threads for j in 1:ny
+        # -----------------------------------------------------------------
+        # CRITICAL PERFORMANCE: Pre-allocate feq buffer ONCE
+        # -----------------------------------------------------------------
+        # We allocate this temporary buffer *outside* the hot loops (i, j)
+        # to avoid allocating memory millions of times per step.
+        feq_local = MVector{9, T}(undef)
 
-    # Loop over all fluid nodes
-    @inbounds for j in 1:ny
-        for i in 1:nx
+        # Loop over all fluid nodes
+        @fastmath @inbounds for i in 1:nx
             # 1. Get local macroscopic values (read from state)
             rho_i = state.rho[i, j]
             u_i = state.u[i, j]

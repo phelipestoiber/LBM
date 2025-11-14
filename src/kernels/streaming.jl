@@ -31,8 +31,8 @@ function streaming!(state::SimulationState{T}) where {T<:AbstractFloat}
     # Loop over all destination nodes
     # (Note: This loop order is cache-friendly for f_in[i, j, k])
     # (Future optimization: use Threads.@threads for j loop)
-    @inbounds for j in 1:ny
-        for i in 1:nx
+    Threads.@threads for j in 1:ny
+        @fastmath @inbounds for i in 1:nx
             # Loop over all 9 directions
             @simd for k in 1:9
                 # 1. Get the velocity vector c_k
